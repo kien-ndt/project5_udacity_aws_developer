@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Form, Button } from 'semantic-ui-react'
 import Auth from '../auth/Auth'
 import { getUploadUrl, uploadFile } from '../api/todos-api'
+import { Redirect } from 'react-router-dom'
 
 enum UploadState {
   NoUpload,
@@ -56,7 +57,7 @@ export class EditTodo extends React.PureComponent<
       this.setUploadState(UploadState.UploadingFile)
       await uploadFile(uploadUrl, this.state.file)
 
-      alert('File was uploaded!')
+      window.location.replace('/')
     } catch (e) {
       alert('Could not upload a file: ' + (e as Error).message)
     } finally {
@@ -80,7 +81,7 @@ export class EditTodo extends React.PureComponent<
             <label>File</label>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               placeholder="Image to upload"
               onChange={this.handleFileChange}
             />

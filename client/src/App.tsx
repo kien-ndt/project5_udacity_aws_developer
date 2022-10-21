@@ -83,7 +83,18 @@ export default class App extends Component<AppProps, AppState> {
 
   generateCurrentPage() {
     if (!this.props.auth.isAuthenticated()) {
-      return <LogIn auth={this.props.auth} />
+      return (
+        <Switch>
+          <Route
+            path="/"
+            exact
+            render={(props) => {
+              return <Todos {...props} auth={this.props.auth} />
+            }}
+          />
+          <Route component={NotFound} />
+        </Switch>
+      )
     }
 
     return (
@@ -91,7 +102,7 @@ export default class App extends Component<AppProps, AppState> {
         <Route
           path="/"
           exact
-          render={props => {
+          render={(props) => {
             return <Todos {...props} auth={this.props.auth} />
           }}
         />
@@ -99,7 +110,7 @@ export default class App extends Component<AppProps, AppState> {
         <Route
           path="/todos/:todoId/edit"
           exact
-          render={props => {
+          render={(props) => {
             return <EditTodo {...props} auth={this.props.auth} />
           }}
         />

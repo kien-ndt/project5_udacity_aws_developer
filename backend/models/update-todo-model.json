@@ -10,15 +10,11 @@
     "dueDate": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$"
-    },
-    "done": {
-      "type": "boolean"
     }
   },
   "required": [
     "name",
-    "dueDate",
-    "done"
+    "dueDate"
   ],
   "additionalProperties": false
 }

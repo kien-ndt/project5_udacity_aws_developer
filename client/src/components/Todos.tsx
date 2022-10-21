@@ -11,12 +11,15 @@ import {
   Icon,
   Input,
   Image,
-  Loader
+  Loader,
+  Label
 } from 'semantic-ui-react'
 
 import { createTodo, deleteTodo, getTodos, patchTodo } from '../api/todos-api'
 import Auth from '../auth/Auth'
 import { Todo } from '../types/Todo'
+import { webSocketEndpoint } from '../config'
+import './Todos.css'
 
 interface TodosProps {
   auth: Auth
@@ -64,7 +67,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     try {
       await deleteTodo(this.props.auth.getIdToken(), todoId)
       this.setState({
-        todos: this.state.todos.filter(todo => todo.todoId !== todoId)
+        todos: this.state.todos.filter((todo) => todo.todoId !== todoId)
       })
     } catch {
       alert('Todo deletion failed')
@@ -72,24 +75,39 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   }
 
   onTodoCheck = async (pos: number) => {
+    if (!this.props.auth.isAuthenticated()) {
+      alert('Please login to like this')
+      return
+    }
     try {
       const todo = this.state.todos[pos]
       await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
         name: todo.name,
-        dueDate: todo.dueDate,
-        done: !todo.done
+        dueDate: todo.dueDate
       })
       this.setState({
         todos: update(this.state.todos, {
-          [pos]: { done: { $set: !todo.done } }
+          [pos]: { likeCount: { $set: todo.likeCount } }
         })
       })
     } catch {
-      alert('Todo deletion failed')
+      alert('Todo like failed')
     }
   }
 
+  ws = new WebSocket(webSocketEndpoint)
+
   async componentDidMount() {
+    this.ws.onmessage = (event) => {
+      const { todoId, likeCount } = JSON.parse(event.data)
+      const newTodos = this.state.todos.map((r) => {
+        if (r.todoId === todoId) {
+          r.likeCount = likeCount
+        }
+        return r
+      })
+      this.setState({ ...this.state, todos: newTodos })
+    }
     try {
       const todos = await getTodos(this.props.auth.getIdToken())
       this.setState({
@@ -99,6 +117,12 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     } catch (e) {
       alert(`Failed to fetch todos: ${(e as Error).message}`)
     }
+
+    this.ws.onopen = (event) => {}
+  }
+
+  componentWillUnmount() {
+    this.ws.close()
   }
 
   render() {
@@ -106,7 +130,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       <div>
         <Header as="h1">TODOs</Header>
 
-        {this.renderCreateTodoInput()}
+        {this.props.auth.isAuthenticated() && this.renderCreateTodoInput()}
 
         {this.renderTodos()}
       </div>
@@ -162,38 +186,54 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         {this.state.todos.map((todo, pos) => {
           return (
             <Grid.Row key={todo.todoId}>
-              <Grid.Column width={1} verticalAlign="middle">
-                <Checkbox
-                  onChange={() => this.onTodoCheck(pos)}
-                  checked={todo.done}
-                />
+              <Grid.Column width={16}>
+                <p className="title-content">{todo.name}</p>
               </Grid.Column>
-              <Grid.Column width={10} verticalAlign="middle">
-                {todo.name}
+              <Grid.Column width={16} textAlign={'center'}>
+                {todo.attachmentUrl && (
+                  <Image src={todo.attachmentUrl} size="huge" wrapped />
+                )}
               </Grid.Column>
-              <Grid.Column width={3} floated="right">
-                {todo.dueDate}
-              </Grid.Column>
-              <Grid.Column width={1} floated="right">
+              <Grid.Column
+                width={14}
+                verticalAlign="middle"
+                textAlign="center"
+                className="like-area"
+              >
                 <Button
-                  icon
-                  color="blue"
-                  onClick={() => this.onEditButtonClick(todo.todoId)}
+                  as="div"
+                  labelPosition="right"
+                  onClick={() => this.onTodoCheck(pos)}
                 >
-                  <Icon name="pencil" />
+                  <Button color="red">
+                    <Icon name="heart" />
+                  </Button>
+                  <Label as="a" basic color="red" pointing="left">
+                    {todo.likeCount}
+                  </Label>
                 </Button>
               </Grid.Column>
-              <Grid.Column width={1} floated="right">
-                <Button
-                  icon
-                  color="red"
-                  onClick={() => this.onTodoDelete(todo.todoId)}
-                >
-                  <Icon name="delete" />
-                </Button>
-              </Grid.Column>
-              {todo.attachmentUrl && (
-                <Image src={todo.attachmentUrl} size="small" wrapped />
+              {this.props.auth.isAuthenticated() && todo.owner && (
+                <>
+                  <Grid.Column width={1} floated="right">
+                    <Button
+                      icon
+                      color="blue"
+                      onClick={() => this.onEditButtonClick(todo.todoId)}
+                    >
+                      <Icon name="pencil" size="small" />
+                    </Button>
+                  </Grid.Column>
+                  <Grid.Column width={1} floated="right">
+                    <Button
+                      icon
+                      color="red"
+                      onClick={() => this.onTodoDelete(todo.todoId)}
+                    >
+                      <Icon name="delete" size="small" />
+                    </Button>
+                  </Grid.Column>
+                </>
               )}
               <Grid.Column width={16}>
                 <Divider />

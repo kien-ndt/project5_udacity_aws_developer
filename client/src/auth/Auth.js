@@ -3,7 +3,7 @@ import { authConfig } from '../config';
 
 export default class Auth {
   accessToken;
-  idToken;
+  idToken = "---";
   expiresAt;
 
   auth0 = new auth0.WebAuth({
@@ -24,6 +24,10 @@ export default class Auth {
     this.getAccessToken = this.getAccessToken.bind(this);
     this.getIdToken = this.getIdToken.bind(this);
     this.renewSession = this.renewSession.bind(this);
+
+    this.expiresAt = localStorage.getItem("expiresAt")
+    this.accessToken = localStorage.getItem("accessToken")
+    this.idToken = localStorage.getItem("idToken") !== null ? localStorage.getItem("idToken") : "---"
   }
 
   login() {
@@ -61,6 +65,9 @@ export default class Auth {
     this.accessToken = authResult.accessToken;
     this.idToken = authResult.idToken;
     this.expiresAt = expiresAt;
+    localStorage.setItem("expiresAt", this.expiresAt)
+    localStorage.setItem("accessToken", this.accessToken)
+    localStorage.setItem("idToken", this.idToken)
 
     // navigate to the home route
     this.history.replace('/');
@@ -83,6 +90,9 @@ export default class Auth {
     this.accessToken = null;
     this.idToken = null;
     this.expiresAt = 0;
+    localStorage.removeItem("expiresAt")
+    localStorage.removeItem("accessToken")
+    localStorage.removeItem("idToken")
 
     // Remove isLoggedIn flag from localStorage
     localStorage.removeItem('isLoggedIn');
@@ -99,6 +109,11 @@ export default class Auth {
     // Check whether the current time is past the
     // access token's expiry time
     let expiresAt = this.expiresAt;
+    if (new Date().getTime() >= expiresAt) {
+      localStorage.removeItem("expiresAt")
+      localStorage.removeItem("accessToken")
+      localStorage.removeItem("idToken")
+    }
     return new Date().getTime() < expiresAt;
   }
 }

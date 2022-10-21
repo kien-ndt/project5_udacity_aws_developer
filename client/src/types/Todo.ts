@@ -5,4 +5,6 @@ export interface Todo {
   dueDate: string
   done: boolean
   attachmentUrl?: string
+  likeCount: number
+  owner: boolean
 }
